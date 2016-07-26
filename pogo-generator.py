@@ -187,9 +187,9 @@ def create_account(fake):
 	# Sends an email that is [username]@[domain], make sure to monitor bounce bro
 	email_value = username_value + "@" + DOMAIN_NAME
 
-	log.info("Username: ", username_value)
-	log.info("Password: ", password_value)
-	log.info("Email: ", email_value)
+	log.info('Username: %s', username_value)
+	log.info('Password: %s', password_value)
+	log.info('Email: %s', email_value)
 
 	# Sets each form control we will be using as a variable
 	username = br.form.find_control("username")
