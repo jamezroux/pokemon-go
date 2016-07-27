@@ -76,6 +76,13 @@ def process_mailbox(M):
 	# The main loop that gets the emails and activates them
 
 	for num in data[0].split():
+
+		# Welcome to Shroëdingers line
+		# For some reason, this little bugger decided
+		# it wants to be a headache. Works most of the
+		# time, but eventually causes an imap error
+		# that makes you restart the script
+
 		rv, data = M.fetch(num, '(RFC822)')
 		if rv != 'OK':
 			log.error('Error getting message')
@@ -109,6 +116,11 @@ def process_mailbox(M):
 						# Pretty sure this activates the link, could be fucked later on though
 						br.open(link)
 						log.info("%s", link)
+
+						# Only output accounts that are activated
+						with open("accounts.csv", "a") as account_file:
+							account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
+
 						M.store(num, '+FLAGS', '\\Deleted')
 						M.expunge()
 						num = int(num) - 1
@@ -129,6 +141,11 @@ def process_mailbox(M):
 					# Pretty sure this activates the link, could be fucked later on though
 					br.open(link)
 					log.info("%s", link)
+
+					# Only output accounts that are activated
+					with open("accounts.csv", "a") as account_file:
+						account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
+
 					M.store(num, '+FLAGS', '\\Deleted')
 					M.expunge()
 					num = int(num) - 1
@@ -238,10 +255,6 @@ def create_account(fake):
 
 	br.submit()
 	br.close()
-
-	with open("accounts.csv", "a") as account_file:
-		account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
-
 	log.debug('Account submitted')
 
 def main():
