@@ -18,15 +18,15 @@ log = logging.getLogger(__name__)
 ################################################
 #             Fill This Stuff Out              #
 ################################################
-IMAP_SERVER = "imap.yourserver.com"            # The IMAP server
-EMAIL_ACCOUNT = "your-email@yourserver.com"    # The email account
-EMAIL_PASSWORD = "youremailpassword"           # The email password
+IMAP_SERVER = "imap.yourdomain.com"            # The IMAP server
+EMAIL_ACCOUNT = "yourmail@yourdomain.com"      # The email account
+EMAIL_PASSWORD = "yourpassword"                # The email password
 EMAIL_FOLDER = "Inbox"                         # The email folder (default is usually inbox)
 PASSWORD_LENGTH = 10                           # Length for the account passwords
-MAGIC_DATA = "extradata"                       # Extra text to add to the end of all accounts, to make them more unique
+MAGIC_DATA = "somestuff"                       # Extra text to add to the end of all accounts, to make them more unique
 DOMAIN_NAME = "yourdomain.com"                 # The domain name for the email accounts (probably the domain name of your bounce email)
-SLEEP_TIME = 5                                 # Time to sleep in seconds
-ACCOUNT_AMOUNT = 1                             # Number of accounts to make
+SLEEP_TIME = 30                                # Time to sleep in seconds
+ACCOUNT_AMOUNT = 5                             # Number of accounts to make
 ################################################
 
 
@@ -45,15 +45,27 @@ def process_mailbox(M):
 
 	rv, data = M.search(None, '(FROM "noreply@pokemon.com")')
 	if rv != 'OK':
-		log.error('No messages found!')
+		log.debug('No messages found!')
 		return
 
 	# The main loop that gets the emails and activates them
 
 	for num in data[0].split():
-		rv, data = M.fetch(num, '(RFC822)')
+
+                # Attempts the fetch, and attempts again if an error is thrown
+                # This previously would cause an error that stopped the script,
+                # lets see if it can do it's bullshit this time when I a fuck
+                # it with an except
+
+                try:
+                    rv, data = M.fetch(num, 'RFC822')
+                except:
+                    log.info('Fetch command failed, restarting the function')
+                    process_mailbox(M)
+                    break
+
 		if rv != 'OK':
-			log.error('Error getting message')
+			log.debug('Error getting message')
 			return
 
 		msg = email.message_from_string(data[0][1])
@@ -82,11 +94,17 @@ def process_mailbox(M):
 					if "activated" in link:
 
 						# Pretty sure this activates the link, could be fucked later on though
-						br.open(link)
-						log.info("%s", link)
+                                                tried = 0
+                                                while tried < 5:
+                                                    try:
+                                                        log.debug('Attempting to activate: %s' % tried)
+                                                        br.open(link)
+                                                        break
+                                                    except:
+                                                        tried += 1
+					        log.info("%s", link)
                                                 M.store(num, '+FLAGS', '\\Deleted')
 						M.expunge()
-						#num = int(num) - 1
 
 		else:
 
@@ -103,12 +121,19 @@ def process_mailbox(M):
 
 					# Pretty sure this activates the link, could be fucked later on though
 					br.open(link)
+                                        tried = 0
+                                        while tried < 5:
+                                            try:
+                                                log.debug('Attempting to activate: %s' % tried)
+                                                br.open(link)
+                                                break
+                                            except:
+                                                tried += 1
 					log.info("%s", link)
 					M.store(num, '+FLAGS', '\\Deleted')
 					M.expunge()
-					#num = int(num) - 1
 
-	log.info('Done checking emails')
+	log.debug('Done checking emails')
 
 def email_login(M):
 
@@ -133,7 +158,14 @@ def create_account(fake):
 	br = mechanize.Browser()
 	br.addheaders = [('User-agent', 'Firefox')]
 
-	br.open("https://club.pokemon.com/us/pokemon-trainer-club/parents/sign-up")
+        tried = 0
+        while tried < 5:
+            log.debug('Attempting to open sign-up page: %s' % tried)
+            try:
+        	br.open("https://club.pokemon.com/us/pokemon-trainer-club/parents/sign-up")
+                break
+            except:
+                tried += 1
 
 	# Submits age, defaults to US as location
 	# Todo: Randomize age?
@@ -151,7 +183,14 @@ def create_account(fake):
 
 	dob.value = "1992-03-23"
 
-	br.submit()
+        tried = 0
+        while tried < 5:
+            try:
+                log.debug('Attempting to submit dob: %s' % tried)
+                br.submit()
+                break;
+            except:
+                tried += 1
 
 	#These are the form controls
 	#
@@ -215,8 +254,16 @@ def create_account(fake):
         with open("accounts.csv", "a") as account_file:
                 account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
 
-	br.submit()
-	br.close()
+        tried = 0
+        while tried < 5:
+            log.debug('Attempting to submit account: %s' % tried)
+            try:
+        	br.submit()
+	        br.close()
+                break
+            except:
+                tried += 1
+
 	log.debug('Account submitted')
 
 def main():
@@ -238,6 +285,10 @@ def main():
         time.sleep(SLEEP_TIME)
 
         process_mailbox(M)
+
+        log.info('Waiting for sleepy emails')
+        time.sleep(SLEEP_TIME)
+
         process_mailbox(M)
 
 	M.close()
