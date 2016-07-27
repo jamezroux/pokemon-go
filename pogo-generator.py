@@ -43,15 +43,15 @@ log = logging.getLogger(__name__)
 ################################################
 #             Fill This Stuff Out              #
 ################################################
-IMAP_SERVER = "imap.yourserver.com"            # The IMAP server
-EMAIL_ACCOUNT = "your-mail@yourdomain.com"     # The email account
-EMAIL_PASSWORD = "your-password"               # The email password
+IMAP_SERVER = "{your imap server}"             # The IMAP server
+EMAIL_ACCOUNT = "{yourmail}@{yourdomain}"      # The email account
+EMAIL_PASSWORD = "{password}"                  # The email password
 EMAIL_FOLDER = "Inbox"                         # The email folder (default is usually inbox)
 PASSWORD_LENGTH = 10                           # Length for the account passwords
-MAGIC_DATA = "pogo"                            # Extra text to add to the end of all accounts, to make them more unique
-DOMAIN_NAME = "yourdomain.com"                 # The domain name for the email accounts (probably the domain name of your bounce email)
-WAIT_TIME = 5                                  # Number of seconds to wait after last submition before checking the email box
-ACCOUNT_NUM = 50                               # Number of accounts to make
+MAGIC_DATA = "{extra string}"                  # Extra text to add to the end of all accounts, to make them more unique
+DOMAIN_NAME = "{your domain}"                  # The domain name for the email accounts (probably the domain name of your bounce email)
+SLEEP_TIME = 0.1                               # Time to sleep in seconds
+ACCOUNT_AMOUNT = 500                           #
 ################################################
 
 
@@ -77,11 +77,8 @@ def process_mailbox(M):
 
 	for num in data[0].split():
 
-		# Welcome to Shroëdingers line
-		# For some reason, this little bugger decided
-		# it wants to be a headache. Works most of the
-		# time, but eventually causes an imap error
-		# that makes you restart the script
+		# This magic line here lives according to some
+		# bs logic. it works... most of the time. 
 
 		rv, data = M.fetch(num, '(RFC822)')
 		if rv != 'OK':
@@ -117,13 +114,12 @@ def process_mailbox(M):
 						br.open(link)
 						log.info("%s", link)
 
-						# Only output accounts that are activated
 						with open("accounts.csv", "a") as account_file:
 							account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
 
 						M.store(num, '+FLAGS', '\\Deleted')
 						M.expunge()
-						num = int(num) - 1
+						#num = int(num) - 1
 
 		else:
 
@@ -142,13 +138,12 @@ def process_mailbox(M):
 					br.open(link)
 					log.info("%s", link)
 
-					# Only output accounts that are activated
 					with open("accounts.csv", "a") as account_file:
 						account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
 
 					M.store(num, '+FLAGS', '\\Deleted')
 					M.expunge()
-					num = int(num) - 1
+					#num = int(num) - 1
 
 	log.info('Done checking emails')
 
@@ -262,20 +257,21 @@ def main():
 	fake = Factory.create()
 
 	email_login(M)
-	while True:
-		logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(module)10s] [%(levelname)5s] %(message)s')
-		logging.getLogger("logger").setLevel(logging.DEBUG)
 
-		log.debug('Logger has been setup')
+	logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(module)10s] [%(levelname)5s] %(message)s')
+	logging.getLogger("logger").setLevel(logging.DEBUG)
 
-		for account_num in range(ACCOUNT_AMOUNT):
-			create_account(fake)
-			log.info('Created account: %s' % account_num)
+	log.info('Logger has been setup')
 
-		log.info('Waiting before processing mailbox')
-		time.sleep(WAIT_TIME)
+	for i in range(ACCOUNT_AMOUNT):
+		create_account(fake)
+		i += 1
+		log.info('Created account: %s' % i)
 
-		process_mailbox(M)
+	log.info('Waiting')
+	time.sleep(SLEEP_TIME)
+
+	process_mailbox(M)
 
 	M.close()
 
