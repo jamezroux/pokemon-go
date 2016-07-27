@@ -1,3 +1,28 @@
+################################################
+#               Some Stupid Info               #
+################################################
+#                                              #
+# This is prone to bugs, especially when it    #
+# comes to email activation. For some reason   #
+# it gets an imap error. So, use a large       #
+# number of accounts (i.e. 20+) to create, so  #
+# that when it gets to the activation part at  #
+# least you'll get more than two.              #
+#                                              #
+# Some of the accounts aren't activated, and   #
+# so when you go to use them, make sure you    #
+# remove the ones that don't work.             #
+#                                              #
+# Todo: Create a login script to test the      #
+# previously generated accounts?               #
+#                                              #
+################################################
+#                                              #
+# Author: B1ood6od (and stack overflow ofc)    #
+# Site  : https://github.com/B1ood6od          #
+#                                              #
+################################################
+
 import sys
 import imaplib
 import getpass
@@ -25,6 +50,8 @@ EMAIL_FOLDER = "Inbox"                         # The email folder (default is us
 PASSWORD_LENGTH = 10                           # Length for the account passwords
 MAGIC_DATA = "pogo"                            # Extra text to add to the end of all accounts, to make them more unique
 DOMAIN_NAME = "yourdomain.com"                 # The domain name for the email accounts (probably the domain name of your bounce email)
+WAIT_TIME = 5                                  # Number of seconds to wait after last submition before checking the email box
+ACCOUNT_NUM = 50                               # Number of accounts to make
 ################################################
 
 
@@ -127,7 +154,7 @@ def email_login(M):
 		return False
 
 def create_account(fake):
-	log.info('Creating account')
+	log.debug('Creating account')
 	br = mechanize.Browser()
 	br.addheaders = [('User-agent', 'Firefox')]
 
@@ -145,7 +172,6 @@ def create_account(fake):
 	# country -> ['US']
 
 	dob = br.form.find_control("dob")
-	country = br.form.find_control("country")
 
 	dob.value = "1992-03-23"
 
@@ -188,8 +214,8 @@ def create_account(fake):
 	email_value = username_value + "@" + DOMAIN_NAME
 
 	log.info('Username: %s', username_value)
-	log.info('Password: %s', password_value)
-	log.info('Email: %s', email_value)
+	log.debug('Password: %s', password_value)
+	log.debug('Email: %s', email_value)
 
 	# Sets each form control we will be using as a variable
 	username = br.form.find_control("username")
@@ -216,7 +242,7 @@ def create_account(fake):
 	with open("accounts.csv", "a") as account_file:
 		account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
 
-	log.info('Account submitted')
+	log.debug('Account submitted')
 
 def main():
 	M = imaplib.IMAP4_SSL(IMAP_SERVER)
@@ -227,17 +253,16 @@ def main():
 		logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(module)10s] [%(levelname)5s] %(message)s')
 		logging.getLogger("logger").setLevel(logging.DEBUG)
 
-		log.info('Logger has been setup')
-		log.error('FUCK')
-		create_account(fake)
+		log.debug('Logger has been setup')
 
-		log.info('Waiting 5 seconds')
-		time.sleep(5)
+		for account_num in range(ACCOUNT_AMOUNT):
+			create_account(fake)
+			log.info('Created account: %s' % account_num)
+
+		log.info('Waiting before processing mailbox')
+		time.sleep(WAIT_TIME)
 
 		process_mailbox(M)
-
-		log.info('Waiting 5 seconds')
-		time.sleep(5)
 
 	M.close()
 
