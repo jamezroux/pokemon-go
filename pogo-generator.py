@@ -1,28 +1,3 @@
-################################################
-#               Some Stupid Info               #
-################################################
-#                                              #
-# This is prone to bugs, especially when it    #
-# comes to email activation. For some reason   #
-# it gets an imap error. So, use a large       #
-# number of accounts (i.e. 20+) to create, so  #
-# that when it gets to the activation part at  #
-# least you'll get more than two.              #
-#                                              #
-# Some of the accounts aren't activated, and   #
-# so when you go to use them, make sure you    #
-# remove the ones that don't work.             #
-#                                              #
-# Todo: Create a login script to test the      #
-# previously generated accounts?               #
-#                                              #
-################################################
-#                                              #
-# Author: B1ood6od (and stack overflow ofc)    #
-# Site  : https://github.com/B1ood6od          #
-#                                              #
-################################################
-
 import sys
 import imaplib
 import getpass
@@ -43,15 +18,15 @@ log = logging.getLogger(__name__)
 ################################################
 #             Fill This Stuff Out              #
 ################################################
-IMAP_SERVER = "{your imap server}"             # The IMAP server
-EMAIL_ACCOUNT = "{yourmail}@{yourdomain}"      # The email account
-EMAIL_PASSWORD = "{password}"                  # The email password
+IMAP_SERVER = "imap.yourserver.com"            # The IMAP server
+EMAIL_ACCOUNT = "your-email@yourserver.com"    # The email account
+EMAIL_PASSWORD = "youremailpassword"           # The email password
 EMAIL_FOLDER = "Inbox"                         # The email folder (default is usually inbox)
 PASSWORD_LENGTH = 10                           # Length for the account passwords
-MAGIC_DATA = "{extra string}"                  # Extra text to add to the end of all accounts, to make them more unique
-DOMAIN_NAME = "{your domain}"                  # The domain name for the email accounts (probably the domain name of your bounce email)
-SLEEP_TIME = 0.1                               # Time to sleep in seconds
-ACCOUNT_AMOUNT = 500                           #
+MAGIC_DATA = "extradata"                       # Extra text to add to the end of all accounts, to make them more unique
+DOMAIN_NAME = "yourdomain.com"                 # The domain name for the email accounts (probably the domain name of your bounce email)
+SLEEP_TIME = 5                                 # Time to sleep in seconds
+ACCOUNT_AMOUNT = 1                             # Number of accounts to make
 ################################################
 
 
@@ -76,10 +51,6 @@ def process_mailbox(M):
 	# The main loop that gets the emails and activates them
 
 	for num in data[0].split():
-
-		# This magic line here lives according to some
-		# bs logic. it works... most of the time. 
-
 		rv, data = M.fetch(num, '(RFC822)')
 		if rv != 'OK':
 			log.error('Error getting message')
@@ -113,11 +84,7 @@ def process_mailbox(M):
 						# Pretty sure this activates the link, could be fucked later on though
 						br.open(link)
 						log.info("%s", link)
-
-						with open("accounts.csv", "a") as account_file:
-							account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
-
-						M.store(num, '+FLAGS', '\\Deleted')
+                                                M.store(num, '+FLAGS', '\\Deleted')
 						M.expunge()
 						#num = int(num) - 1
 
@@ -137,10 +104,6 @@ def process_mailbox(M):
 					# Pretty sure this activates the link, could be fucked later on though
 					br.open(link)
 					log.info("%s", link)
-
-					with open("accounts.csv", "a") as account_file:
-						account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
-
 					M.store(num, '+FLAGS', '\\Deleted')
 					M.expunge()
 					#num = int(num) - 1
@@ -184,6 +147,7 @@ def create_account(fake):
 	# country -> ['US']
 
 	dob = br.form.find_control("dob")
+	country = br.form.find_control("country")
 
 	dob.value = "1992-03-23"
 
@@ -248,6 +212,9 @@ def create_account(fake):
 	confirm_email.value = email_value
 	terms.items[0].selected = True
 
+        with open("accounts.csv", "a") as account_file:
+                account_file.write("%s,%s,%s\n" % (username_value, password_value, email_value))
+
 	br.submit()
 	br.close()
 	log.debug('Account submitted')
@@ -258,20 +225,20 @@ def main():
 
 	email_login(M)
 
-	logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(module)10s] [%(levelname)5s] %(message)s')
-	logging.getLogger("logger").setLevel(logging.DEBUG)
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(module)10s] [%(levelname)5s] %(message)s')
+        logging.getLogger("logger").setLevel(logging.DEBUG)
 
-	log.info('Logger has been setup')
+        log.info('Logger has been setup')
 
-	for i in range(ACCOUNT_AMOUNT):
-		create_account(fake)
-		i += 1
-		log.info('Created account: %s' % i)
+        for account_num in range(ACCOUNT_AMOUNT):
+            create_account(fake)
+            log.info('Created account: %s' % account_num)
 
-	log.info('Waiting')
-	time.sleep(SLEEP_TIME)
+        log.info('Waiting')
+        time.sleep(SLEEP_TIME)
 
-	process_mailbox(M)
+        process_mailbox(M)
+        process_mailbox(M)
 
 	M.close()
 
