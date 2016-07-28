@@ -18,15 +18,15 @@ log = logging.getLogger(__name__)
 ################################################
 #             Fill This Stuff Out              #
 ################################################
-IMAP_SERVER = "imap.yourdomain.com"            # The IMAP server
-EMAIL_ACCOUNT = "yourmail@yourdomain.com"      # The email account
+IMAP_SERVER = "imap.yourserver.com"            # The IMAP server
+EMAIL_ACCOUNT = "mail@yourdomain.com"          # The email account
 EMAIL_PASSWORD = "yourpassword"                # The email password
 EMAIL_FOLDER = "Inbox"                         # The email folder (default is usually inbox)
 PASSWORD_LENGTH = 10                           # Length for the account passwords
-MAGIC_DATA = "somestuff"                       # Extra text to add to the end of all accounts, to make them more unique
+MAGIC_DATA = "yourstuff"                       # Extra text to add to the end of all accounts, to make them more unique
 DOMAIN_NAME = "yourdomain.com"                 # The domain name for the email accounts (probably the domain name of your bounce email)
 SLEEP_TIME = 30                                # Time to sleep in seconds
-ACCOUNT_AMOUNT = 5                             # Number of accounts to make
+ACCOUNT_AMOUNT = 1                             # Number of accounts to make
 ################################################
 
 
@@ -55,7 +55,7 @@ def process_mailbox(M):
                 # Attempts the fetch, and attempts again if an error is thrown
                 # This previously would cause an error that stopped the script,
                 # lets see if it can do it's bullshit this time when I a fuck
-                # it with an except
+                # it with a while loop
 
                 try:
                     rv, data = M.fetch(num, 'RFC822')
@@ -203,6 +203,14 @@ def create_account(fake):
 
 	form = br.select_form("create-account")
 
+	# Creates a password by magic
+	alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+	PASSWORD_LENGTH = 10
+	password_value = ""
+	for i in range(PASSWORD_LENGTH):
+		next_index = random.randrange(len(alphabet))
+		password_value = password_value + alphabet[next_index]
+
 	# Creates the username with the first letter of a fake name, and 7 letters of a fake last name, with optional data
 	two_word_name = "false"
 
@@ -214,17 +222,8 @@ def create_account(fake):
 		except:
 			two_word_name = "false"
 
-	username_value = first_name[0] + last_name[:7] + MAGIC_DATA
+        username_value = password_value[:4] + last_name[:7] + MAGIC_DATA
 	username_value = username_value.lower()
-
-	# Creates a password by magic
-	alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-	PASSWORD_LENGTH = 10
-	password_value = ""
-	for i in range(PASSWORD_LENGTH):
-		next_index = random.randrange(len(alphabet))
-		password_value = password_value + alphabet[next_index]
-
 	# Sends an email that is [username]@[domain], make sure to monitor bounce bro
 	email_value = username_value + "@" + DOMAIN_NAME
 
@@ -235,7 +234,7 @@ def create_account(fake):
 	# Sets each form control we will be using as a variable
 	username = br.form.find_control("username")
 	password = br.form.find_control("password")
-	confirm_password = br.form.find_control("confirm_password")
+        confirm_password = br.form.find_control("confirm_password")
 	email = br.form.find_control("email")
 	confirm_email = br.form.find_control("confirm_email")
 	terms = br.form.find_control("terms")
@@ -270,8 +269,6 @@ def main():
 	M = imaplib.IMAP4_SSL(IMAP_SERVER)
 	fake = Factory.create()
 
-	email_login(M)
-
         logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(module)10s] [%(levelname)5s] %(message)s')
         logging.getLogger("logger").setLevel(logging.DEBUG)
 
@@ -284,6 +281,7 @@ def main():
         log.info('Waiting')
         time.sleep(SLEEP_TIME)
 
+	email_login(M)
         process_mailbox(M)
 
         log.info('Waiting for sleepy emails')
